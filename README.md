@@ -1,0 +1,2 @@
+# Husky-Not-Husky App
+In this tutorial, we're going to build an application to determine dog's breed, specifically Siberian Husky and Alaskan Malamute. The datasets for dog breeds was taken from [Stanford Dogs Dataset](http://vision.stanford.edu/aditya86/ImageNetDogs/) — amazingly provided by Stanford University — and only including Siberian Husky and Alaskan Malamute — to minimize training time required for Amazon Rekognition Custom Labels to complete.
