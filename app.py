@@ -6,7 +6,7 @@ import argparse
 def init():
     _parser = argparse.ArgumentParser(description='Husky-Not-Husky App.', epilog='More information — https://slidescript.dev')
     _parser.add_argument('--arn', help='Amazon Rekognition Custom Labels ARN', required=True)
-    _parser.add_argument('--action', help='start (To start a model) |  stop (To stop a model) | identify (To identify image(s))', required=True)
+    _parser.add_argument('--action', help='start (To start a model) | stop (To stop a model) | identify (To identify image(s))', required=True)
     _parser.add_argument('--s3-bucket', help='')
     _parser.add_argument('--s3-path', help='')
 
@@ -22,7 +22,6 @@ def init():
         identify(args.arn, args.s3_bucket, args.s3_path)
 
 
-
 def start_project(arn):                
     try:
         print('Starting model.')
@@ -31,9 +30,11 @@ def start_project(arn):
             ProjectVersionArn=arn,
             MinInferenceUnits=1
         )    
-        print('Model is started.')
+        print('Model is starting.')
     except _rekognition.exceptions.ResourceInUseException:
         print('Model is already running.')
+    except _rekognition.exceptions.LimitExceededException:
+        print('Please stop another model.')
 
 def stop_project(arn):
     try:
@@ -48,20 +49,35 @@ def stop_project(arn):
 
 
 def identify(arn, s3_bucket, s3_path):
-    _rekognition = boto3.client('rekognition', region_name='us-east-1')
-    response = _rekognition.detect_custom_labels(
-        ProjectVersionArn=arn,
-        Image={
-            'S3Object': {
-                'Bucket': s3_bucket,
-                'Name': s3_path
-            }
-        },
-    )
-    if response:
-        if 'CustomLabels' in response:
-            for label in response['CustomLabels']:
-                print('{} detected as {} with confidence level {}'.format(s3_path, label['Name'], label['Confidence']))
+    try:
+        THRESHOLD=99
+        _rekognition = boto3.client('rekognition', region_name='us-east-1')
+        response = _rekognition.detect_custom_labels(
+            ProjectVersionArn=arn,
+            Image={
+                'S3Object': {
+                    'Bucket': s3_bucket,
+                    'Name': s3_path
+                }
+            },
+            MinConfidence=80
+        )
+        print(response)
+        if response:
+            if response['CustomLabels']:
+                for label in response['CustomLabels']:
+                    if label['Name']=='Siberian-Husky':
+                        print('\nWOOF! It\'s a Husky!')
+                    else:
+                        print('\nNope. Not-Husky.\n')        
+                    print('{} detected as {} with confidence level {}\n\n'.format(s3_path, label['Name'], label['Confidence']))
+            else:
+                print('\nNope. Not-Husky.\n')
+
+
+    except _rekognition.exceptions.ResourceNotReadyException:
+        print('Model is not ready. Please check your model status in the console.')
+
 
 if __name__ == '__main__':
     init()
